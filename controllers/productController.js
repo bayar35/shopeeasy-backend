@@ -29,35 +29,36 @@ const formatImageForCloudinary = (imageData) => {
 // CREATE PRODUCT (Admin) — base64 + File хоёуланг дэмжинэ
 // ============================================
 export const createProduct = handleAsyncError(async (req, res, next) => {
+  console.log("=== CREATE PRODUCT START ===");
+  console.log("Body keys:", Object.keys(req.body));
+  console.log("Files:", req.files ? Object.keys(req.files) : "none");
+
   const { name, description, price, category, stock } = req.body;
 
   let imagesToUpload = [];
 
-  // ⭐ 1) req.files.images (File object) байвал
+  // Files
   if (req.files && req.files.images) {
     const files = Array.isArray(req.files.images)
       ? req.files.images
       : [req.files.images];
-    imagesToUpload = files.map((f) => ({
-      type: "file",
-      data: f,
-    }));
+    imagesToUpload = files.map((f) => ({ type: "file", data: f }));
+    console.log("Files found:", imagesToUpload.length);
   }
 
-  // ⭐ 2) req.body.images (base64 string) байвал
+  // Base64
   if (imagesToUpload.length === 0 && req.body.images) {
     const bodyImages = Array.isArray(req.body.images)
       ? req.body.images
       : [req.body.images];
     imagesToUpload = bodyImages
       .filter((img) => img && typeof img === "string")
-      .map((img) => ({
-        type: "base64",
-        data: img,
-      }));
+      .map((img) => ({ type: "base64", data: img }));
+    console.log("Base64 found:", imagesToUpload.length);
   }
 
   if (imagesToUpload.length === 0) {
+    console.log("❌ No images to upload");
     return next(new HandleError("Please upload product images", 400));
   }
 
@@ -67,38 +68,49 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     let uploadSource;
 
     if (item.type === "file") {
-      // File object — tempFilePath эсвэл data
       uploadSource = item.data.tempFilePath || item.data.data;
+      console.log("File type:", typeof uploadSource);
     } else {
-      // base64 string
       uploadSource = formatImageForCloudinary(item.data);
+      console.log("Base64 type:", typeof uploadSource);
     }
 
     if (!uploadSource) {
-      console.error("Invalid image source:", item.type);
+      console.error("❌ Invalid image source:", item.type);
       continue;
     }
 
     try {
+      console.log("Uploading to Cloudinary...");
+      console.log("Source length:", uploadSource.length || "N/A");
+      
       const myCloud = await cloudinary.uploader.upload(uploadSource, {
         folder: "products",
         width: 800,
         crop: "scale",
       });
 
+      console.log("✅ Cloudinary success:", myCloud.public_id);
+
       uploadedImages.push({
         public_id: myCloud.public_id,
         url: myCloud.secure_url,
       });
     } catch (error) {
-      console.error("Cloudinary upload error:", error.message);
-      return next(new HandleError(`Image upload failed: ${error.message}`, 500));
+      console.error("❌ Cloudinary error:", error.message);
+      console.error("❌ Full error:", JSON.stringify(error, null, 2));
+      return next(
+        new HandleError(`Image upload failed: ${error.message}`, 500)
+      );
     }
   }
 
   if (uploadedImages.length === 0) {
-    return next(new HandleError("No images were uploaded successfully", 400));
+    console.log("❌ No images uploaded");
+    return next(new HandleError("No images uploaded", 400));
   }
+
+  console.log("=== CREATING PRODUCT ===");
 
   const product = await Product.create({
     name,
@@ -109,6 +121,8 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     images: uploadedImages,
     user: req.user._id,
   });
+
+  console.log("✅ Product created:", product._id);
 
   res.status(201).json({
     success: true,
