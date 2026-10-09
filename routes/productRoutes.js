@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";  // ⭐ НЭМЭХ
 import {
   createProducts,
   ReviewForProduct,
@@ -14,25 +15,46 @@ import { roleBasedAccess, verifyUserAuth } from "../middleware/userAuth.js";
 
 const router = express.Router();
 
-// Public routes
+// ⭐ MULTER ТОХИРГОО — memoryStorage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// ============================================
+// PUBLIC ROUTES
+// ============================================
 router.route("/products").get(getAllProducts);
 router.route("/product/:id").get(getSingleProduct);
 
-// User routes
+// ============================================
+// USER ROUTES
+// ============================================
 router.route("/review").put(verifyUserAuth, ReviewForProduct);
 
-// Admin routes
+// ============================================
+// ADMIN ROUTES
+// ============================================
 router
   .route("/admin/products")
   .get(verifyUserAuth, roleBasedAccess("admin"), getAdminProducts);
 
+// ⭐ MULTER НЭМЭХ — "images" (plural)
 router
   .route("/admin/product/create")
-  .post(verifyUserAuth, roleBasedAccess("admin"), createProducts);
+  .post(
+    verifyUserAuth,
+    roleBasedAccess("admin"),
+    upload.array("images"),  // ⭐ ЭНЭ МӨР ЗААВАЛ БАЙХ ЁСТОЙ!
+    createProducts
+  );
 
 router
   .route("/admin/product/:id")
-  .put(verifyUserAuth, roleBasedAccess("admin"), updateProduct)
+  .put(
+    verifyUserAuth,
+    roleBasedAccess("admin"),
+    upload.array("images"),  // ⭐ MULTER НЭМЭХ
+    updateProduct
+  )
   .delete(verifyUserAuth, roleBasedAccess("admin"), deleteProduct);
 
 router
