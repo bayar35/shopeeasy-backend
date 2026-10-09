@@ -4,10 +4,10 @@ const errorMiddleware = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.message = err.message || "Internal Server Error";
 
-  // Mongoose CastError (буруу ID)
+  // Mongoose CastError (буруу ObjectId)
   if (err.name === "CastError") {
-    const message = `This is invalid resource ${err.path}`;
-    err = new HandleError(message, 404);
+    const message = `Invalid ${err.path}: ${err.value}`;
+    err = new HandleError(message, 400);
   }
 
   // Mongoose Duplicate Key
@@ -24,6 +24,14 @@ const errorMiddleware = (err, req, res, next) => {
   // JWT Expire
   if (err.name === "TokenExpiredError") {
     err = new HandleError("JSON Web Token is expired. Try again.", 401);
+  }
+
+  // Validation Error
+  if (err.name === "ValidationError") {
+    const message = Object.values(err.errors)
+      .map((val) => val.message)
+      .join(", ");
+    err = new HandleError(message, 400);
   }
 
   res.status(err.statusCode).json({
