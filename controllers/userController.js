@@ -152,6 +152,8 @@ export const logout = handleAsyncError(async (req, res, next) => {
   res.cookie("token", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "none", // Cross-origin (Vercel -> Render) ажиллахын тулд
   });
   res.status(200).json({
     success: true,
@@ -182,7 +184,9 @@ export const requestPasswordReset = handleAsyncError(
       );
     }
 
-    const resetPasswordURL = `${process.env.CLIENT_URL}/reset/${resetToken}`;
+    // Environment variable ашиглах (Render дээр тохируулна)
+    const clientUrl = process.env.CLIENT_URL || "https://shopeeasy-frontend.vercel.app";
+    const resetPasswordURL = `${clientUrl}/reset/${resetToken}`;
     const message = `Use the following link to reset your password: ${resetPasswordURL}. \n\n This link will expire in 30 minutes. \n\n If you didn't request a password reset, please ignore this message.`;
 
     try {
