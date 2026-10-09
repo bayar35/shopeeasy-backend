@@ -17,19 +17,19 @@ import {
 // Error Middleware
 import errorMiddleware from "./middleware/error.js";
 
-// Routes (⚠️ -s-тэй!)
+// Routes
 import userRoute from "./routes/userRoutes.js";
 import productRoute from "./routes/productRoutes.js";
 import orderRoute from "./routes/orderRoutes.js";
-import paymentRoute from "./routes/paymentRoutes.js";
 import wishlistRoute from "./routes/wishlistRoutes.js";
+import paymentRoute from "./routes/paymentRoutes.js";
 
 dotenv.config();
 
 const app = express();
 
 // ============================================
-// 1. HEALTH CHECK (ХАМГИЙН ТҮРҮҮНД!)
+// 1. HEALTH CHECK
 // ============================================
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -66,11 +66,11 @@ app.use("/api/v1/password/reset", passwordResetLimiter);
 app.use("/api/v1", userRoute);
 app.use("/api/v1", productRoute);
 app.use("/api/v1", orderRoute);
-app.use("/api/v1", paymentRoute);
 app.use("/api/v1", wishlistRoute);
+app.use("/api/v1", paymentRoute);
 
 // ============================================
-// 5. ERROR HANDLER (хамгийн сүүлд!)
+// 5. ERROR HANDLER
 // ============================================
 app.use(errorMiddleware);
 

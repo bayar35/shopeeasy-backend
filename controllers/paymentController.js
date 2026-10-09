@@ -1,46 +1,47 @@
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import crypto from "crypto";
-import { instance } from "../server.js";
 
+// ============================================
+// FAKE PROCESS PAYMENT (Razorpay-гүй)
+// ============================================
 export const processPayment = handleAsyncError(async (req, res) => {
-  const options = {
-    amount: Number(req.body.amount * 100),
+  const { amount } = req.body;
+
+  // Fake order үүсгэх
+  const fakeOrder = {
+    id: `fake_order_${Date.now()}`,
+    entity: "order",
+    amount: Number(amount * 100),
     currency: "INR",
+    status: "created",
+    created_at: Math.floor(Date.now() / 1000),
   };
-  const order = await instance.orders.create(options);
+
   res.status(200).json({
     success: true,
-    order,
+    order: fakeOrder,
   });
 });
 
-// Send API Key
+// ============================================
+// FAKE SEND API KEY
+// ============================================
 export const sendAPIKey = handleAsyncError(async (req, res) => {
   res.status(200).json({
-    key: process.env.RAZORPAY_API_KEY,
+    key: "fake_razorpay_key_12345",
   });
 });
 
-// Payment Verification
+// ============================================
+// FAKE PAYMENT VERIFICATION
+// ============================================
 export const paymentVerification = handleAsyncError(async (req, res) => {
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
-    req.body;
-  const body = razorpay_order_id + "|" + razorpay_payment_id;
-  const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_API_SECRET)
-    .update(body.toString())
-    .digest("hex");
-  const isAuthentic = expectedSignature === razorpay_signature;
-  if (isAuthentic) {
-    return res.status(200).json({
-      success: true,
-      message: "Payment verified successfully",
-      reference: razorpay_payment_id,
-    });
-  } else {
-    return res.status(400).json({
-      success: false,
-      message: "Payment verification failed",
-    });
-  }
+  const { razorpay_payment_id, razorpay_order_id } = req.body;
+
+  // Бүх төлбөрийг амжилттай гэж үзэх
+  return res.status(200).json({
+    success: true,
+    message: "Payment verified successfully (FAKE)",
+    reference: razorpay_payment_id || `fake_payment_${Date.now()}`,
+  });
 });
