@@ -5,7 +5,7 @@ import xss from "xss-clean";
 import hpp from "hpp";
 
 // ============================================
-// 1. HELMET — HTTP Headers хамгаалалт
+// 1. HELMET — HTTP Headers хамгаалалт (ЗАСВАР ОРСОН)
 // ============================================
 export const helmetConfig = helmet({
   contentSecurityPolicy: {
@@ -15,63 +15,69 @@ export const helmetConfig = helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com"],
       scriptSrc: ["'self'", "https://accounts.google.com"],
-      connectSrc: ["'self'", process.env.CLIENT_URL || "http://localhost:5173"],
+      connectSrc: ["'self'", "*"], // Энд * тавьснаар API холболтыг хөтөч блок хийхгүй
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false,
 });
 
+// OPTIONS хүсэлтийг rate limit-ээс алгасах функц
+const skipOptionsRequests = (req) => req.method === "OPTIONS";
+
 // ============================================
-// 2. GENERAL RATE LIMITER — Бүх API-д
+// 2. GENERAL RATE LIMITER (ЗАСВАР ОРСОН)
 // ============================================
 export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // 100 хүсэлт
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: {
     success: false,
     message: "Хэт олон хүсэлт илгээлээ. 15 минутын дараа дахин оролдоно уу.",
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipOptionsRequests, // OPTIONS хүсэлтийг тоолохгүй
 });
 
 // ============================================
-// 3. AUTH RATE LIMITER — Login/Register/Forgot-д хатуу
+// 3. AUTH RATE LIMITER (ЗАСВАР ОРСОН)
 // ============================================
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 5, // 5 удаа буруу оролдвол блоклоно
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: {
     success: false,
     message: "Хэт олон удаа оролдлоо. 15 минутын дараа дахин оролдоно уу.",
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true, // Амжилттай хүсэлтийг тоохгүй
+  skipSuccessfulRequests: true,
+  skip: skipOptionsRequests, // OPTIONS хүсэлтийг тоолохгүй
 });
 
 // ============================================
-// 4. PASSWORD RESET RATE LIMITER
+// 4. PASSWORD RESET RATE LIMITER (ЗАСВАР ОРСОН)
 // ============================================
 export const passwordResetLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 цаг
-  max: 3, // 3 удаа л имэйл илгээх боломжтой
+  windowMs: 60 * 60 * 1000,
+  max: 3,
   message: {
     success: false,
     message: "Хэт олон удаа нууц үг сэргээх хүсэлт илгээлээ. 1 цагийн дараа оролдоно уу.",
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipOptionsRequests, // OPTIONS хүсэлтийг тоолохгүй
 });
 
 // ============================================
 // 5. DATA SANITIZATION
 // ============================================
 export const sanitizeData = [
-  mongoSanitize(), // NoSQL Injection
-  xss(), // XSS
-  hpp(), // Parameter Pollution
+  mongoSanitize(),
+  xss(),
+  hpp(),
 ];
 
 // ============================================
@@ -80,9 +86,9 @@ export const sanitizeData = [
 export const corsConfig = {
   origin: [
     process.env.CLIENT_URL || "http://localhost:5173",
-    "https://shopeeasy-frontend.vercel.app",
+    "https://shopeeasy-frontend.vercel.app", // Сүүлийн налуу зураасгүй зөв байна
   ],
-  credentials: true, // Cookie дамжуулахад шаардлагатай
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
