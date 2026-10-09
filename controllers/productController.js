@@ -31,30 +31,35 @@ const formatImageForCloudinary = (imageData) => {
 export const createProduct = handleAsyncError(async (req, res, next) => {
   console.log("=== CREATE PRODUCT START ===");
   console.log("Body keys:", Object.keys(req.body));
-  console.log("Files:", req.files ? Object.keys(req.files) : "none");
+  console.log("Files:", req.files);
+  console.log("Files is array:", Array.isArray(req.files));
+  console.log("Files length:", req.files?.length);
 
   const { name, description, price, category, stock } = req.body;
 
   let imagesToUpload = [];
 
-  // Files
-  if (req.files && req.files.images) {
-    const files = Array.isArray(req.files.images)
-      ? req.files.images
-      : [req.files.images];
-    imagesToUpload = files.map((f) => ({ type: "file", data: f }));
-    console.log("Files found:", imagesToUpload.length);
+  // ⭐ 1) req.files — Multer-ийн upload.array("images") нь МАССИВ буцаана
+  if (req.files && req.files.length > 0) {
+    imagesToUpload = req.files.map((f) => ({
+      type: "file",
+      data: f,
+    }));
+    console.log("✅ Files found:", imagesToUpload.length);
   }
 
-  // Base64
+  // ⭐ 2) req.body.images — base64 string
   if (imagesToUpload.length === 0 && req.body.images) {
     const bodyImages = Array.isArray(req.body.images)
       ? req.body.images
       : [req.body.images];
     imagesToUpload = bodyImages
       .filter((img) => img && typeof img === "string")
-      .map((img) => ({ type: "base64", data: img }));
-    console.log("Base64 found:", imagesToUpload.length);
+      .map((img) => ({
+        type: "base64",
+        data: img,
+      }));
+    console.log("✅ Base64 found:", imagesToUpload.length);
   }
 
   if (imagesToUpload.length === 0) {
@@ -68,11 +73,21 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     let uploadSource;
 
     if (item.type === "file") {
-      uploadSource = item.data.tempFilePath || item.data.data;
-      console.log("File type:", typeof uploadSource);
+      // Multer memoryStorage — buffer ашиглах
+      if (item.data.buffer) {
+        // Buffer -> base64 data URL
+        const base64 = item.data.buffer.toString("base64");
+        const mimeType = item.data.mimetype || "image/jpeg";
+        uploadSource = `data:${mimeType};base64,${base64}`;
+      } else if (item.data.tempFilePath) {
+        uploadSource = item.data.tempFilePath;
+      } else if (item.data.data) {
+        uploadSource = item.data.data;
+      }
+      console.log("File source type:", typeof uploadSource);
     } else {
       uploadSource = formatImageForCloudinary(item.data);
-      console.log("Base64 type:", typeof uploadSource);
+      console.log("Base64 source type:", typeof uploadSource);
     }
 
     if (!uploadSource) {
@@ -82,23 +97,18 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
 
     try {
       console.log("Uploading to Cloudinary...");
-      console.log("Source length:", uploadSource.length || "N/A");
-      
       const myCloud = await cloudinary.uploader.upload(uploadSource, {
         folder: "products",
         width: 800,
         crop: "scale",
       });
-
       console.log("✅ Cloudinary success:", myCloud.public_id);
-
       uploadedImages.push({
         public_id: myCloud.public_id,
         url: myCloud.secure_url,
       });
     } catch (error) {
       console.error("❌ Cloudinary error:", error.message);
-      console.error("❌ Full error:", JSON.stringify(error, null, 2));
       return next(
         new HandleError(`Image upload failed: ${error.message}`, 500)
       );
@@ -106,12 +116,11 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
   }
 
   if (uploadedImages.length === 0) {
-    console.log("❌ No images uploaded");
-    return next(new HandleError("No images uploaded", 400));
+    console.log("❌ No images uploaded successfully");
+    return next(new HandleError("No images were uploaded successfully", 400));
   }
 
   console.log("=== CREATING PRODUCT ===");
-
   const product = await Product.create({
     name,
     description,
@@ -121,7 +130,6 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     images: uploadedImages,
     user: req.user._id,
   });
-
   console.log("✅ Product created:", product._id);
 
   res.status(201).json({
