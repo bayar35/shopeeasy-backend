@@ -48,6 +48,10 @@ app.get("/api/health", (req, res) => {
 // ============================================
 // 2. SECURITY MIDDLEWARE
 // ============================================
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
+  next();
+});
 app.use(helmetConfig);
 app.use(cors(corsConfig));
 app.use(compression());

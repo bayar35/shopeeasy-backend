@@ -23,7 +23,25 @@ export const googleAuth = handleAsyncError(async (req, res, next) => { /* ... */
 export const logout = handleAsyncError(async (req, res, next) => { /* ... */ });
 
 // 5. FORGOT PASSWORD
-export const requestPasswordReset = handleAsyncError(async (req, res, next) => { /* ... */ });
+export const requestPasswordReset = handleAsyncError(async (req, res, next) => {
+  console.log("➡️ Forgot password request:", req.body.email);   // ← функцийн хамгийн эхэнд
+
+  // ... таны user хайх код
+  // user олдохгүй бол буцаах хэсгийн өмнө:
+  // console.log("➡️ User not found");
+
+  // ... таны token үүсгэх, save хийх код
+
+  // sendEmail дуудахын өмнө:
+  console.log("➡️ Sending email to:", user.email);
+
+  // await sendEmail({...});  ← таны код хэвээр
+
+  // sendEmail дууссаны дараа:
+  console.log("➡️ Email step done");
+
+  // ... res.status(200).json(...)
+});
 
 // 6. RESET PASSWORD
 export const resetPassword = handleAsyncError(async (req, res, next) => { /* ... */ });
