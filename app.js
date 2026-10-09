@@ -29,48 +29,7 @@ dotenv.config();
 const app = express();
 
 // ============================================
-// SECURITY MIDDLEWARE (Дараалсан байх ёстой!)
-// ============================================
-
-// 1. Helmet — HTTP headers
-app.use(helmetConfig);
-
-// 2. CORS — Cross-origin
-app.use(cors(corsConfig));
-
-// 3. Compression — Хариултыг шахах
-app.use(compression());
-
-// 4. Body Parser — Хэмжээг хязгаарлах
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
-// 5. Cookie Parser
-app.use(cookieParser());
-
-// 6. Data Sanitization — NoSQL, XSS, HPP
-app.use(sanitizeData);
-
-// 7. General Rate Limiter — Бүх API
-app.use("/api", generalLimiter);
-
-// ============================================
-// ROUTES
-// ============================================
-
-// Auth routes-д тусгай хатуу limiter
-app.use("/api/v1/login", authLimiter);
-app.use("/api/v1/register", authLimiter);
-app.use("/api/v1/password/forgot", passwordResetLimiter);
-app.use("/api/v1/password/reset", passwordResetLimiter);
-
-// Ердийн routes
-app.use("/api/v1", userRoute);
-app.use("/api/v1", productRoute);
-app.use("/api/v1", orderRoute);
-
-// ============================================
-// HEALTH CHECK
+// 1. HEALTH CHECK (ХАМГИЙН ТҮРҮҮНД!)
 // ============================================
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -82,7 +41,50 @@ app.get("/api/health", (req, res) => {
 });
 
 // ============================================
-// ERROR HANDLER (хамгийн сүүлд байх ёстой!)
+// 2. SECURITY MIDDLEWARE
+// ============================================
+
+// Helmet — HTTP headers
+app.use(helmetConfig);
+
+// CORS — Cross-origin
+app.use(cors(corsConfig));
+
+// Compression — Хариултыг шахах
+app.use(compression());
+
+// Body Parser — Хэмжээг хязгаарлах
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
+// Cookie Parser
+app.use(cookieParser());
+
+// Data Sanitization — NoSQL, XSS, HPP
+app.use(sanitizeData);
+
+// ============================================
+// 3. RATE LIMITERS
+// ============================================
+
+// General Rate Limiter — Бүх API
+app.use("/api", generalLimiter);
+
+// Auth routes-д тусгай хатуу limiter
+app.use("/api/v1/login", authLimiter);
+app.use("/api/v1/register", authLimiter);
+app.use("/api/v1/password/forgot", passwordResetLimiter);
+app.use("/api/v1/password/reset", passwordResetLimiter);
+
+// ============================================
+// 4. ROUTES
+// ============================================
+app.use("/api/v1", userRoute);
+app.use("/api/v1", productRoute);
+app.use("/api/v1", orderRoute);
+
+// ============================================
+// 5. ERROR HANDLER (хамгийн сүүлд байх ёстой!)
 // ============================================
 app.use(errorMiddleware);
 
