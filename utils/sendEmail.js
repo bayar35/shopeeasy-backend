@@ -2,16 +2,22 @@ import nodeMailer from "nodemailer";
 
 export const sendEmail = async (options) => {
   console.log("📧 sendEmail started →", options.email);
-  console.log("SMTP_MAIL:", process.env.SMTP_MAIL);
-  console.log("SMTP_PASSWORD exists:", !!process.env.SMTP_PASSWORD);
-  console.log("SMTP_SERVICE:", process.env.SMTP_SERVICE);
 
   const transporter = nodeMailer.createTransport({
-    service: process.env.SMTP_SERVICE || "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // 587 портод false (TLS ашиглана)
     auth: {
       user: process.env.SMTP_MAIL,
       pass: process.env.SMTP_PASSWORD,
     },
+    // IPv6-г албадахгүй байх
+    tls: {
+      rejectUnauthorized: false,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 
   const mailOptions = {
@@ -27,7 +33,6 @@ export const sendEmail = async (options) => {
     console.log("✅ Email accepted:", info.accepted);
     return info;
   } catch (err) {
-    // ⚠️ `error` биш `err` гэж нэрлэсэн!
     console.error("❌ Email send error:", err.message);
     console.error("❌ Full error:", err);
     throw err;
