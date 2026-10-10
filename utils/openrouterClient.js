@@ -9,7 +9,15 @@ const openrouter = new OpenAI({
   },
 });
 
-// ⭐ Qwen 2.5 72B — үнэгүй, Монгол хэл сайн
-export const OPENROUTER_MODEL = "qwen/qwen-2.5-72b-instruct:free";
+// ⭐ Үнэгүй model-уудын жагсаалт (fallback)
+export const OPENROUTER_MODELS = [
+  "qwen/qwen-2.5-72b-instruct:free",
+  "google/gemini-flash-1.5:free",
+  "mistralai/mistral-7b-instruct:free",
+  "deepseek/deepseek-chat:free",
+];
+
+// ⭐ Анхдагч model (эхний нь)
+export const OPENROUTER_MODEL = OPENROUTER_MODELS[0];
 
 export default openrouter;

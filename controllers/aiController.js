@@ -1,7 +1,12 @@
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
-import openrouter, { OPENROUTER_MODEL } from "../utils/openrouterClient.js";
+import openrouter, {
+  OPENROUTER_MODELS,
+} from "../utils/openrouterClient.js";
 
+// ============================================
+// SYSTEM PROMPT
+// ============================================
 const SYSTEM_PROMPT = `Та "ShopEasy" онлайн дэлгүүрийн найрсаг туслах AI юм.
 
 Таны үүрэг:
@@ -18,6 +23,9 @@ ShopEasy-ийн тухай:
 - Утас: +1234455
 - Имэйл: ub35@gmail.com`;
 
+// ============================================
+// CHAT — AI-тай харилцах (fallback логик)
+// ============================================
 export const chatWithAI = handleAsyncError(async (req, res, next) => {
   const { message, history = [] } = req.body;
 
@@ -25,61 +33,66 @@ export const chatWithAI = handleAsyncError(async (req, res, next) => {
   console.log("Message:", message);
   console.log("History length:", history.length);
   console.log("OPENROUTER_API_KEY exists:", !!process.env.OPENROUTER_API_KEY);
-  console.log("OPENROUTER_MODEL:", OPENROUTER_MODEL);
+  console.log("Available models:", OPENROUTER_MODELS.length);
 
   if (!message || message.trim() === "") {
     return next(new HandleError("Message is required", 400));
   }
 
-  try {
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...history.slice(-10).map((msg) => ({
-        role: msg.role === "assistant" ? "assistant" : "user",
-        content: msg.content,
-      })),
-      { role: "user", content: message },
-    ];
+  // Мессежүүдийг бэлтгэх
+  const messages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...history.slice(-10).map((msg) => ({
+      role: msg.role === "assistant" ? "assistant" : "user",
+      content: msg.content,
+    })),
+    { role: "user", content: message },
+  ];
 
-    console.log("Total messages:", messages.length);
-    console.log("Sending to OpenRouter...");
+  console.log("Total messages:", messages.length);
 
-    const completion = await openrouter.chat.completions.create({
-      model: OPENROUTER_MODEL,
-      messages,
-      temperature: 0.7,
-      max_tokens: 1024,
-    });
+  // ⭐ Fallback логик: Model-уудыг нэг нэгээр турших
+  let lastError = null;
 
-    const aiResponse =
-      completion.choices[0]?.message?.content ||
-      "Уучлаарай, хариу үүсгэх боломжгүй байна.";
+  for (const model of OPENROUTER_MODELS) {
+    try {
+      console.log(`Trying model: ${model}...`);
 
-    console.log("✅ AI response:", aiResponse.substring(0, 100));
+      const completion = await openrouter.chat.completions.create({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1024,
+      });
 
-    res.status(200).json({
-      success: true,
-      message: aiResponse,
-      usage: completion.usage,
-    });
-  } catch (error) {
-    console.error("❌ OpenRouter error:", error.message);
-    console.error("Full error:", error);
+      const aiResponse =
+        completion.choices[0]?.message?.content ||
+        "Уучлаарай, хариу үүсгэх боломжгүй байна.";
 
-    if (error.status === 401) {
-      return next(new HandleError("AI service authentication failed", 500));
+      console.log(`✅ SUCCESS with model: ${model}`);
+      console.log("AI response:", aiResponse.substring(0, 100));
+
+      return res.status(200).json({
+        success: true,
+        message: aiResponse,
+        model,
+        usage: completion.usage,
+      });
+    } catch (error) {
+      console.error(`❌ Failed with model: ${model}`);
+      console.error("Error:", error.message);
+      lastError = error;
+      // Дараагийн model руу үргэлжлүүлэх
     }
-    if (error.status === 429) {
-      return next(
-        new HandleError("AI service rate limit exceeded. Please try again later.", 429)
-      );
-    }
-
-    return next(
-      new HandleError(
-        `AI service error: ${error.message || "Unknown error"}`,
-        500
-      )
-    );
   }
+
+  // Бүх model-ууд ажиллахгүй болсон
+  console.error("❌ All models failed. Last error:", lastError?.message);
+
+  return next(
+    new HandleError(
+      `AI service error: ${lastError?.message || "All models failed"}`,
+      500
+    )
+  );
 });
