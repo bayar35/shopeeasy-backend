@@ -21,7 +21,7 @@ import productRoute from "./routes/productRoutes.js";
 import orderRoute from "./routes/orderRoutes.js";
 import wishlistRoute from "./routes/wishlistRoutes.js";
 import paymentRoute from "./routes/paymentRoutes.js";
-import aiRoute from "./routes/aiRoutes.js";  // ⭐ НЭМЭХ
+import aiRoute from "./routes/aiRoutes.js";
 
 dotenv.config();
 
