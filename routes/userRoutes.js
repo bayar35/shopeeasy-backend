@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   deleteUser,
   getSingleUser,
@@ -18,10 +19,14 @@ import { verifyUserAuth, roleBasedAccess } from "../middleware/userAuth.js";
 
 const router = express.Router();
 
+// ⭐ MULTER — multipart/form-data задлах
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 // ============================================
 // PUBLIC ROUTES
 // ============================================
-router.route("/register").post(registerUser);
+router.route("/register").post(upload.none(), registerUser);
 router.route("/login").post(loginUser);
 router.route("/auth/google").post(googleAuth);
 router.route("/logout").post(logout);
@@ -33,7 +38,9 @@ router.route("/reset/:token").post(resetPassword);
 // ============================================
 router.route("/profile").get(verifyUserAuth, getUserDetails);
 router.route("/password/update").put(verifyUserAuth, updatePassword);
-router.route("/profile/update").put(verifyUserAuth, updateProfile);
+router
+  .route("/profile/update")
+  .put(verifyUserAuth, upload.none(), updateProfile);
 
 // ============================================
 // ADMIN ROUTES
