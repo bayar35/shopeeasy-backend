@@ -57,10 +57,13 @@ export const registerUser = handleAsyncError(async (req, res, next) => {
   }
 
   const myCloud = await cloudinary.uploader.upload(formattedImage, {
-    folder: "avatars",
-    width: 150,
-    crop: "scale",
-  });
+  folder: "avatars",
+  width: 150,
+  crop: "scale",
+  quality: "auto:good",
+  fetch_format: "auto",
+  flags: "progressive",
+});
 
   const user = await User.create({
     name,
@@ -331,6 +334,9 @@ export const updateProfile = handleAsyncError(async (req, res, next) => {
       folder: "avatars",
       width: 150,
       crop: "scale",
+      quality: "auto:good",
+      fetch_format: "auto",
+      flags: "progressive",
     });
 
     updateUserDetails.avatar = {

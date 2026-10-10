@@ -26,7 +26,24 @@ const formatImageForCloudinary = (imageData) => {
 };
 
 // ============================================
-// CREATE PRODUCT (Admin) — base64 + File хоёуланг дэмжинэ
+// CLOUDINARY OPTIMIZATION OPTIONS
+// ============================================
+const getCloudinaryOptions = (folder = "products") => ({
+  folder,
+  width: 800,
+  crop: "scale",
+  quality: "auto:good",        // ⭐ Автомат чанар
+  fetch_format: "auto",        // ⭐ WebP, AVIF формат
+  flags: "progressive",        // ⭐ Progressive JPEG
+  transformation: [
+    { width: 800, crop: "scale" },
+    { quality: "auto:good" },
+    { fetch_format: "auto" },
+  ],
+});
+
+// ============================================
+// CREATE PRODUCT (Admin)
 // ============================================
 export const createProduct = handleAsyncError(async (req, res, next) => {
   console.log("=== CREATE PRODUCT START ===");
@@ -73,9 +90,7 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     let uploadSource;
 
     if (item.type === "file") {
-      // Multer memoryStorage — buffer ашиглах
       if (item.data.buffer) {
-        // Buffer -> base64 data URL
         const base64 = item.data.buffer.toString("base64");
         const mimeType = item.data.mimetype || "image/jpeg";
         uploadSource = `data:${mimeType};base64,${base64}`;
@@ -96,12 +111,12 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     }
 
     try {
-      console.log("Uploading to Cloudinary...");
-      const myCloud = await cloudinary.uploader.upload(uploadSource, {
-        folder: "products",
-        width: 800,
-        crop: "scale",
-      });
+      console.log("Uploading to Cloudinary with optimization...");
+      // ⭐ OPTIMIZATION OPTIONS АШИГЛАХ
+      const myCloud = await cloudinary.uploader.upload(
+        uploadSource,
+        getCloudinaryOptions("products")
+      );
       console.log("✅ Cloudinary success:", myCloud.public_id);
       uploadedImages.push({
         public_id: myCloud.public_id,
@@ -137,6 +152,7 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     product,
   });
 });
+
 // ============================================
 // GET ALL PRODUCTS
 // ============================================
@@ -168,14 +184,13 @@ export const getAllProducts = handleAsyncError(async (req, res, next) => {
   res.status(200).json({
     success: true,
     products,
-    productsCount, // Хуучин хувьсагч хэвээрээ үлдэнэ
-    productCount: productsCount, // 🔥 ФРОНТЭНДДЭЭ ЗОРИУЛЖ СҮҮЛД НЭМЭВ (s-гүй хувилбар)
+    productsCount,
+    productCount: productsCount,
     resultPerPage,
-    resultsPerPage: resultPerPage, // 🔥 Фронтэнд дээр resultsPerPage гэж уншиж байвал зориулж нэмэв
+    resultsPerPage: resultPerPage,
     filteredProductsCount: productsCount,
   });
 });
-
 
 // ============================================
 // GET PRODUCT DETAILS
@@ -194,7 +209,7 @@ export const getProductDetails = handleAsyncError(async (req, res, next) => {
 });
 
 // ============================================
-// UPDATE PRODUCT (Admin) — base64 + File хоёуланг дэмжинэ
+// UPDATE PRODUCT (Admin)
 // ============================================
 export const updateProduct = handleAsyncError(async (req, res, next) => {
   const { name, description, price, category, stock } = req.body;
@@ -206,7 +221,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
   }
 
   let images = product.images;
-
   let imagesToUpload = [];
 
   // req.files.images (File)
@@ -227,7 +241,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
       .map((img) => ({ type: "base64", data: img }));
   }
 
-  // Хэрэв шинэ зураг байвал хуучныг устгаж, шинийг upload хийх
   if (imagesToUpload.length > 0) {
     // Хуучин зургуудыг устгах
     for (const img of product.images) {
@@ -252,11 +265,11 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
       if (!uploadSource) continue;
 
       try {
-        const myCloud = await cloudinary.uploader.upload(uploadSource, {
-          folder: "products",
-          width: 800,
-          crop: "scale",
-        });
+        // ⭐ OPTIMIZATION OPTIONS
+        const myCloud = await cloudinary.uploader.upload(
+          uploadSource,
+          getCloudinaryOptions("products")
+        );
         images.push({
           public_id: myCloud.public_id,
           url: myCloud.secure_url,
@@ -269,18 +282,8 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
 
   const updatedProduct = await Product.findByIdAndUpdate(
     req.params.id,
-    {
-      name,
-      description,
-      price,
-      category,
-      stock,
-      images,
-    },
-    {
-      returnDocument: "after",
-      runValidators: true,
-    }
+    { name, description, price, category, stock, images },
+    { returnDocument: "after", runValidators: true }
   );
 
   res.status(200).json({
@@ -299,7 +302,6 @@ export const deleteProduct = handleAsyncError(async (req, res, next) => {
     return next(new HandleError("Product not found", 404));
   }
 
-  // Delete images from Cloudinary
   for (const img of product.images) {
     try {
       await cloudinary.uploader.destroy(img.public_id);
@@ -406,15 +408,8 @@ export const deleteReview = handleAsyncError(async (req, res, next) => {
 
   await Product.findByIdAndUpdate(
     req.query.productId,
-    {
-      reviews,
-      ratings,
-      numOfReviews,
-    },
-    {
-      returnDocument: "after",
-      runValidators: true,
-    }
+    { reviews, ratings, numOfReviews },
+    { returnDocument: "after", runValidators: true }
   );
 
   res.status(200).json({

@@ -81,4 +81,12 @@ userSchema.methods.generatePasswordResetToken = function () {
   return resetToken;
 };
 
+// ============================================
+// DATABASE INDEXES (Хайлтыг хурдлуулах)
+// ============================================
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
+
 export default mongoose.model("User", userSchema);
