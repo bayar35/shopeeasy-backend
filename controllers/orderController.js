@@ -2,7 +2,6 @@ import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
-import User from "../models/userModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import {
   orderConfirmationEmail,
@@ -39,7 +38,6 @@ export const newOrder = handleAsyncError(async (req, res, next) => {
 
   console.log("✅ Order created:", order._id);
 
-  // ⭐ Захиалгын баталгаажуулах имэйл
   try {
     await sendEmail({
       email: req.user.email,
@@ -110,7 +108,10 @@ export const getAllOrders = handleAsyncError(async (req, res, next) => {
 // ADMIN — UPDATE ORDER STATUS
 // ============================================
 export const updateOrder = handleAsyncError(async (req, res, next) => {
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate(
+    "user",
+    "name email"
+  );
 
   if (!order) {
     return next(new HandleError("Order not found with this id", 404));
@@ -120,21 +121,17 @@ export const updateOrder = handleAsyncError(async (req, res, next) => {
     return next(new HandleError("This order has been already delivered", 400));
   }
 
+  // ⭐ ЗӨВХӨН 1 УДАА
   const previousStatus = order.orderStatus;
   const newStatus = req.body.status || req.body.orderStatus;
 
-  const previousStatus = order.orderStatus;
-const newStatus = req.body.status || req.body.orderStatus;
+  console.log("=== updateOrder DEBUG ===");
+  console.log("Order ID:", req.params.id);
+  console.log("Previous status:", previousStatus);
+  console.log("New status:", newStatus);
+  console.log("User email:", order.user?.email);
 
-// ⭐ DEBUG
-console.log("DEBUG updateOrder:", {
-  body: req.body,
-  previousStatus,
-  newStatus,
-  orderId: req.params.id,
-});
-
-  // Update stock (зөвхөн Shipped болгох үед)
+  // Update stock
   if (newStatus === "Shipped" && previousStatus !== "Shipped") {
     for (const item of order.orderItems) {
       const product = await Product.findById(item.product);
@@ -153,48 +150,55 @@ console.log("DEBUG updateOrder:", {
 
   await order.save({ validateBeforeSave: false });
 
-  // ⭐ Имэйл илгээх (статус өөрчлөгдсөн бол)
+  // ⭐ Имэйл илгээх
   if (previousStatus !== newStatus) {
     try {
-      const user = await User.findById(order.user);
+      const userEmail = order.user?.email;
 
-      if (user) {
+      if (!userEmail) {
+        console.log("⚠️ No user email for order:", order._id);
+      } else {
         let emailTemplate;
         let subject;
 
         switch (newStatus) {
-  case "Shipped":
-    emailTemplate = orderShippedEmail(order);
-    subject = `Таны захиалга илгээгдлээ - #${order._id}`;
-    break;
-  case "On The Way":
-    emailTemplate = orderShippedEmail(order);  // ⭐ "On The Way"-д мөн адил
-    subject = `Таны захиалга замдаа гарлаа - #${order._id}`;const newStatus = req.body.status;
-    break;
-  case "Delivered":
-    emailTemplate = orderDeliveredEmail(order);
-    subject = `Таны захиалга хүргэгдлээ - #${order._id}`;
-    break;
-  case "Cancelled":
-    emailTemplate = orderCancelledEmail(order);
-    subject = `Захиалга цуцлагдлаа - #${order._id}`;
-    break;
-  default:
-    emailTemplate = null;
-}
+          case "Shipped":
+            emailTemplate = orderShippedEmail(order);
+            subject = `Таны захиалга илгээгдлээ - #${order._id}`;
+            break;
+          case "On The Way":
+            emailTemplate = orderShippedEmail(order);
+            subject = `Таны захиалга замдаа гарлаа - #${order._id}`;
+            break;
+          case "Delivered":
+            emailTemplate = orderDeliveredEmail(order);
+            subject = `Таны захиалга хүргэгдлээ - #${order._id}`;
+            break;
+          case "Cancelled":
+            emailTemplate = orderCancelledEmail(order);
+            subject = `Захиалга цуцлагдлаа - #${order._id}`;
+            break;
+          default:
+            emailTemplate = null;
+        }
 
         if (emailTemplate) {
+          console.log(`📧 Sending email to: ${userEmail}`);
           await sendEmail({
-            email: user.email,
+            email: userEmail,
             subject,
             message: emailTemplate,
           });
-          console.log(`✅ Order status email sent to: ${user.email}`);
+          console.log(`✅ Order status email sent to: ${userEmail}`);
+        } else {
+          console.log(`⚠️ No email template for status: ${newStatus}`);
         }
       }
     } catch (emailError) {
       console.error("❌ Status email failed:", emailError.message);
     }
+  } else {
+    console.log(`⚠️ Status unchanged: ${previousStatus} === ${newStatus}`);
   }
 
   res.status(200).json({
@@ -215,7 +219,10 @@ export const deleteOrder = handleAsyncError(async (req, res, next) => {
 
   if (order.orderStatus === "Processing") {
     return next(
-      new HandleError("This order is under processing and cannot be deleted", 400)
+      new HandleError(
+        "This order is under processing and cannot be deleted",
+        400
+      )
     );
   }
 
