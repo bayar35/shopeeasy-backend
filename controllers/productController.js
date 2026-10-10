@@ -2,6 +2,8 @@ import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import Product from "../models/productModel.js";
 import Order from "../models/orderModel.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { reviewThanksEmail } from "../utils/emailTemplates/orderStatusEmail.js";
 import { v2 as cloudinary } from "cloudinary";
 
 // ============================================
@@ -32,9 +34,9 @@ const getCloudinaryOptions = (folder = "products") => ({
   folder,
   width: 800,
   crop: "scale",
-  quality: "auto:good",        // ⭐ Автомат чанар
-  fetch_format: "auto",        // ⭐ WebP, AVIF формат
-  flags: "progressive",        // ⭐ Progressive JPEG
+  quality: "auto:good",
+  fetch_format: "auto",
+  flags: "progressive",
   transformation: [
     { width: 800, crop: "scale" },
     { quality: "auto:good" },
@@ -56,7 +58,6 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
 
   let imagesToUpload = [];
 
-  // ⭐ 1) req.files — Multer-ийн upload.array("images") нь МАССИВ буцаана
   if (req.files && req.files.length > 0) {
     imagesToUpload = req.files.map((f) => ({
       type: "file",
@@ -65,7 +66,6 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
     console.log("✅ Files found:", imagesToUpload.length);
   }
 
-  // ⭐ 2) req.body.images — base64 string
   if (imagesToUpload.length === 0 && req.body.images) {
     const bodyImages = Array.isArray(req.body.images)
       ? req.body.images
@@ -112,7 +112,6 @@ export const createProduct = handleAsyncError(async (req, res, next) => {
 
     try {
       console.log("Uploading to Cloudinary with optimization...");
-      // ⭐ OPTIMIZATION OPTIONS АШИГЛАХ
       const myCloud = await cloudinary.uploader.upload(
         uploadSource,
         getCloudinaryOptions("products")
@@ -223,7 +222,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
   let images = product.images;
   let imagesToUpload = [];
 
-  // req.files.images (File)
   if (req.files && req.files.images) {
     const files = Array.isArray(req.files.images)
       ? req.files.images
@@ -231,7 +229,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
     imagesToUpload = files.map((f) => ({ type: "file", data: f }));
   }
 
-  // req.body.images (base64)
   if (imagesToUpload.length === 0 && req.body.images) {
     const bodyImages = Array.isArray(req.body.images)
       ? req.body.images
@@ -242,7 +239,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
   }
 
   if (imagesToUpload.length > 0) {
-    // Хуучин зургуудыг устгах
     for (const img of product.images) {
       try {
         await cloudinary.uploader.destroy(img.public_id);
@@ -265,7 +261,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
       if (!uploadSource) continue;
 
       try {
-        // ⭐ OPTIMIZATION OPTIONS
         const myCloud = await cloudinary.uploader.upload(
           uploadSource,
           getCloudinaryOptions("products")
@@ -361,6 +356,23 @@ export const createProductReview = handleAsyncError(async (req, res, next) => {
   product.ratings = avg / product.reviews.length;
 
   await product.save({ validateBeforeSave: false });
+
+  // ⭐ Review thanks email илгээх
+  try {
+    await sendEmail({
+      email: req.user.email,
+      subject: "Таны сэтгэгдэлд баярлалаа! ⭐",
+      message: reviewThanksEmail(
+        { name: req.user.name },
+        product,
+        Number(rating),
+        comment
+      ),
+    });
+    console.log("✅ Review thanks email sent to:", req.user.email);
+  } catch (emailError) {
+    console.error("❌ Review email failed:", emailError.message);
+  }
 
   res.status(200).json({
     success: true,
