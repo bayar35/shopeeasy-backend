@@ -121,7 +121,18 @@ export const updateOrder = handleAsyncError(async (req, res, next) => {
   }
 
   const previousStatus = order.orderStatus;
-  const newStatus = req.body.status;
+  const newStatus = req.body.status || req.body.orderStatus;
+
+  const previousStatus = order.orderStatus;
+const newStatus = req.body.status || req.body.orderStatus;
+
+// ⭐ DEBUG
+console.log("DEBUG updateOrder:", {
+  body: req.body,
+  previousStatus,
+  newStatus,
+  orderId: req.params.id,
+});
 
   // Update stock (зөвхөн Shipped болгох үед)
   if (newStatus === "Shipped" && previousStatus !== "Shipped") {
@@ -158,7 +169,7 @@ export const updateOrder = handleAsyncError(async (req, res, next) => {
     break;
   case "On The Way":
     emailTemplate = orderShippedEmail(order);  // ⭐ "On The Way"-д мөн адил
-    subject = `Таны захиалга замдаа гарлаа - #${order._id}`;
+    subject = `Таны захиалга замдаа гарлаа - #${order._id}`;const newStatus = req.body.status;
     break;
   case "Delivered":
     emailTemplate = orderDeliveredEmail(order);
