@@ -39,7 +39,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Security Middleware
+// Security
 app.use(helmetConfig);
 app.use(cors(corsConfig));
 app.use(compression());
@@ -61,7 +61,7 @@ app.use("/api/v1", productRoute);
 app.use("/api/v1", orderRoute);
 app.use("/api/v1", wishlistRoute);
 app.use("/api/v1", paymentRoute);
-app.use("/api/v1", aiRoute);  // ⭐ НЭМЭХ
+app.use("/api/v1", aiRoute);
 
 // Error Handler
 app.use(errorMiddleware);

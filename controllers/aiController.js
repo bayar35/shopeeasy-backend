@@ -1,8 +1,6 @@
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
-import openrouter, {
-  OPENROUTER_MODELS,
-} from "../utils/openrouterClient.js";
+import openrouter, { OPENROUTER_MODELS } from "../utils/openrouterClient.js";
 
 // ============================================
 // SYSTEM PROMPT
@@ -11,9 +9,9 @@ const SYSTEM_PROMPT = `Та "ShopEasy" онлайн дэлгүүрийн най�
 
 Таны үүрэг:
 1. Хэрэглэгчдэд бүтээгдэхүүн хайх, захиалга хийх, хүргэлт, төлбөрийн талаар туслах.
-2. Монгол хэлээр хариулах.
+2. Монгол хэлээр хариулах (хэрэглэгч англиар асуувал англиар хариул).
 3. Товч, тодорхой, найрсаг хариулах.
-4. Хэзээ ч хувийн мэдээлэл асуухгүй байх.
+4. Хэзээ ч хувийн мэдээлэл (нууц үг, картын дугаар) асуухгүй байх.
 
 ShopEasy-ийн тухай:
 - Бүтээгдэхүүн: Electronics, Fashion, Home, Sports, Books, Toys
@@ -24,7 +22,7 @@ ShopEasy-ийн тухай:
 - Имэйл: ub35@gmail.com`;
 
 // ============================================
-// CHAT — AI-тай харилцах (fallback логик)
+// CHAT — Fallback логик
 // ============================================
 export const chatWithAI = handleAsyncError(async (req, res, next) => {
   const { message, history = [] } = req.body;
@@ -51,7 +49,7 @@ export const chatWithAI = handleAsyncError(async (req, res, next) => {
 
   console.log("Total messages:", messages.length);
 
-  // ⭐ Fallback логик: Model-уудыг нэг нэгээр турших
+  // ⭐ Fallback логик
   let lastError = null;
 
   for (const model of OPENROUTER_MODELS) {
