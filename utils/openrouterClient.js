@@ -10,11 +10,7 @@ const openrouter = new OpenAI({
   },
 });
 
-// ⭐ Үнэгүй model-ууд:
-// "meta-llama/llama-3.3-70b-instruct:free" — хамгийн сайн
-// "meta-llama/llama-3.1-8b-instruct:free" — хамгийн хурдан
-// "qwen/qwen-2.5-72b-instruct:free" — Qwen
-// "google/gemini-flash-1.5:free" — Gemini
-export const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+// ⭐ Үнэгүй model — Llama 3.1 8B (хамгийн тогтвортой)
+export const OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
 
 export default openrouter;

@@ -2,16 +2,13 @@ import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import openrouter, { OPENROUTER_MODEL } from "../utils/openrouterClient.js";
 
-// ============================================
-// SYSTEM PROMPT
-// ============================================
 const SYSTEM_PROMPT = `Та "ShopEasy" онлайн дэлгүүрийн найрсаг туслах AI юм.
 
 Таны үүрэг:
 1. Хэрэглэгчдэд бүтээгдэхүүн хайх, захиалга хийх, хүргэлт, төлбөрийн талаар туслах.
-2. Монгол хэлээр хариулах (хэрэглэгч англиар асуувал англиар хариул).
+2. Монгол хэлээр хариулах.
 3. Товч, тодорхой, найрсаг хариулах.
-4. Хэзээ ч хувийн мэдээлэл (нууц үг, картын дугаар) асуухгүй байх.
+4. Хэзээ ч хувийн мэдээлэл асуухгүй байх.
 
 ShopEasy-ийн тухай:
 - Бүтээгдэхүүн: Electronics, Fashion, Home, Sports, Books, Toys
@@ -21,9 +18,6 @@ ShopEasy-ийн тухай:
 - Утас: +1234455
 - Имэйл: ub35@gmail.com`;
 
-// ============================================
-// CHAT — AI-тай харилцах
-// ============================================
 export const chatWithAI = handleAsyncError(async (req, res, next) => {
   const { message, history = [] } = req.body;
 
@@ -38,7 +32,6 @@ export const chatWithAI = handleAsyncError(async (req, res, next) => {
   }
 
   try {
-    // Мессежүүдийг бэлтгэх (OpenAI format)
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
       ...history.slice(-10).map((msg) => ({
@@ -51,13 +44,11 @@ export const chatWithAI = handleAsyncError(async (req, res, next) => {
     console.log("Total messages:", messages.length);
     console.log("Sending to OpenRouter...");
 
-    // OpenRouter API руу хандах
     const completion = await openrouter.chat.completions.create({
       model: OPENROUTER_MODEL,
       messages,
       temperature: 0.7,
       max_tokens: 1024,
-      top_p: 1,
     });
 
     const aiResponse =
@@ -80,10 +71,7 @@ export const chatWithAI = handleAsyncError(async (req, res, next) => {
     }
     if (error.status === 429) {
       return next(
-        new HandleError(
-          "AI service rate limit exceeded. Please try again later.",
-          429
-        )
+        new HandleError("AI service rate limit exceeded. Please try again later.", 429)
       );
     }
 
