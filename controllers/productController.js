@@ -3,7 +3,7 @@ import HandleError from "../utils/handleError.js";
 import Product from "../models/productModel.js";
 import Order from "../models/orderModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
-import { reviewThanksEmail } from "../utils/emailTemplates/orderStatusEmail.js";
+import { reviewThanksEmail } from "../utils/emailTemplates/orderStatus.js";
 import { v2 as cloudinary } from "cloudinary";
 
 // ============================================

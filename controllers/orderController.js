@@ -9,7 +9,7 @@ import {
   orderShippedEmail,
   orderDeliveredEmail,
   orderCancelledEmail,
-} from "../utils/emailTemplates/orderStatusEmail.js";
+} from "../utils/emailTemplates/orderStatus.js";
 
 // ============================================
 // CREATE NEW ORDER
