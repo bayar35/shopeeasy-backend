@@ -152,21 +152,25 @@ export const updateOrder = handleAsyncError(async (req, res, next) => {
         let subject;
 
         switch (newStatus) {
-          case "Shipped":
-            emailTemplate = orderShippedEmail(order);
-            subject = `Таны захиалга илгээгдлээ - #${order._id}`;
-            break;
-          case "Delivered":
-            emailTemplate = orderDeliveredEmail(order);
-            subject = `Таны захиалга хүргэгдлээ - #${order._id}`;
-            break;
-          case "Cancelled":
-            emailTemplate = orderCancelledEmail(order);
-            subject = `Захиалга цуцлагдлаа - #${order._id}`;
-            break;
-          default:
-            emailTemplate = null;
-        }
+  case "Shipped":
+    emailTemplate = orderShippedEmail(order);
+    subject = `Таны захиалга илгээгдлээ - #${order._id}`;
+    break;
+  case "On The Way":
+    emailTemplate = orderShippedEmail(order);  // ⭐ "On The Way"-д мөн адил
+    subject = `Таны захиалга замдаа гарлаа - #${order._id}`;
+    break;
+  case "Delivered":
+    emailTemplate = orderDeliveredEmail(order);
+    subject = `Таны захиалга хүргэгдлээ - #${order._id}`;
+    break;
+  case "Cancelled":
+    emailTemplate = orderCancelledEmail(order);
+    subject = `Захиалга цуцлагдлаа - #${order._id}`;
+    break;
+  default:
+    emailTemplate = null;
+}
 
         if (emailTemplate) {
           await sendEmail({
