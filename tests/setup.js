@@ -1,25 +1,72 @@
+import { jest } from "@jest/globals";
+
+// ⭐ Cloudinary mock
+jest.mock("cloudinary", () => ({
+  v2: {
+    config: jest.fn(),
+    uploader: {
+      upload: jest.fn().mockResolvedValue({
+        public_id: "test_public_id",
+        secure_url: "https://example.com/test.png",
+      }),
+      destroy: jest.fn().mockResolvedValue({ result: "ok" }),
+    },
+  },
+}));
+
+// ⭐ OpenRouter mock
+jest.mock("../utils/openrouterClient.js", () => ({
+  __esModule: true,
+  default: {
+    chat: {
+      completions: {
+        create: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: "Test AI response" } }],
+        }),
+      },
+    },
+  },
+  OPENROUTER_MODELS: ["test-model"],
+}));
+
+import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config({ path: "./config/config.env" });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// ⭐ Test database холболт
+let mongoServer;
+
 beforeAll(async () => {
-  const testDbUri =
-    process.env.TEST_DB_URI ||
-    "mongodb+srv://<username>:<password>@cluster.mongodb.net/test-db";
+  console.log("🧪 Starting MongoMemoryServer...");
+  
+  mongoServer = await MongoMemoryServer.create({
+    binary: {
+      version: "7.0.14",
+      arch: "x64",
+      downloadDir: path.join(__dirname, "..", ".mongo-binaries"),
+    },
+    instance: {
+      launchTimeout: 120000,
+    },
+  });
+  
+  const uri = mongoServer.getUri();
+  await mongoose.connect(uri);
+  console.log("🧪 Test MongoDB connected:", uri);
+}, 180000);
 
-  try {
-    await mongoose.connect(testDbUri);
-    console.log("✅ Test DB connected");
-  } catch (error) {
-    console.error("❌ Test DB connection error:", error.message);
-  }
+afterAll(async () => {
+  await mongoose.connection.close();
+  if (mongoServer) await mongoServer.stop();
+  console.log("🧪 Test MongoDB disconnected");
 });
 
-// ⭐ Test дууссаны дараа DB-г цэвэрлэх
-afterAll(async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  console.log("✅ Test DB cleaned");
+afterEach(async () => {
+  const collections = mongoose.connection.collections;
+  for (const key in collections) {
+    await collections[key].deleteMany({});
+  }
 });

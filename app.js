@@ -2,7 +2,6 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import compression from "compression";
-import dotenv from "dotenv";
 
 import {
   helmetConfig,
@@ -22,9 +21,7 @@ import orderRoute from "./routes/orderRoutes.js";
 import wishlistRoute from "./routes/wishlistRoutes.js";
 import paymentRoute from "./routes/paymentRoutes.js";
 import aiRoute from "./routes/aiRoutes.js";
-import analyticsRoute from "./routes/analyticsRoutes.js";  // ⭐ НЭМЭХ
-
-dotenv.config();
+import analyticsRoute from "./routes/analyticsRoutes.js";
 
 const app = express();
 
@@ -63,9 +60,10 @@ app.use("/api/v1", orderRoute);
 app.use("/api/v1", wishlistRoute);
 app.use("/api/v1", paymentRoute);
 app.use("/api/v1", aiRoute);
-app.use("/api/v1", analyticsRoute);  // ⭐ НЭМЭХ
+app.use("/api/v1", analyticsRoute);
 
 // Error Handler
 app.use(errorMiddleware);
 
+// ⭐ DEFAULT EXPORT — ТЕСТ ДЭЭР ХЭРЭГТЭЙ
 export default app;

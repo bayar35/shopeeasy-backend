@@ -84,9 +84,9 @@ userSchema.methods.generatePasswordResetToken = function () {
 // ============================================
 // DATABASE INDEXES (Хайлтыг хурдлуулах)
 // ============================================
-userSchema.index({ email: 1 }, { unique: true });
+// ⭐ email болон googleId нь schema дотор unique: true-ээр аль хэдийн index үүсгэсэн
+// ⭐ Давхар index үүсгэхгүй байх
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
-userSchema.index({ googleId: 1 }, { sparse: true });
 
 export default mongoose.model("User", userSchema);
